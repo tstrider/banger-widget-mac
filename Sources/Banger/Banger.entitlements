@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- The agent app is NOT sandboxed, so it reaches
+	     ~/Library/Application Support/Banger/ with no exception needed.
+
+	     There is deliberately no com.apple.security.application-groups key here.
+	     On a machine with no code-signing identity that one key makes xcodebuild
+	     fail outright, and even when force-injected the container it creates is
+	     unusable by the app that owns it. Proven in docs/signing-findings.md. -->
+	<key>com.apple.security.app-sandbox</key>
+	<false/>
+</dict>
+</plist>

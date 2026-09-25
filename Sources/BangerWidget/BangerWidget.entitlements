@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- A macOS widget extension must be sandboxed or the widget host will not
+	     load it. The temporary exception is how it reaches the shared task file
+	     without an App Group. The trailing slash matters: it grants the
+	     directory rather than a file of that name. -->
+	<key>com.apple.security.app-sandbox</key>
+	<true/>
+	<key>com.apple.security.temporary-exception.files.home-relative-path.read-write</key>
+	<array>
+		<string>/Library/Application Support/Banger/</string>
+	</array>
+</dict>
+</plist>
