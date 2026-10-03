@@ -30,6 +30,7 @@ struct WidgetDay: Sendable {
     var dayKey: String
     var tasks: [WidgetTask]
     var streak: Int
+    var freeMiss: FreeMissMark = .none
 
     var doneCount: Int { tasks.reduce(0) { $0 + ($1.done ? 1 : 0) } }
     var openCount: Int { tasks.count - doneCount }
@@ -182,6 +183,14 @@ private extension WidgetTask {
 
 private extension TaskDocument {
     var asWidgetDay: WidgetDay {
-        WidgetDay(dayKey: date, tasks: tasks.map(WidgetTask.init), streak: streakDays)
+        WidgetDay(dayKey: date, tasks: tasks.map(WidgetTask.init), streak: streakDays,
+                  freeMiss: freeMissMark)
+    }
+
+    var freeMissMark: FreeMissMark {
+        switch freeMiss {
+        case .ready: return .ready
+        case .spent(_, let coveredYesterday): return coveredYesterday ? .saved : .none
+        }
     }
 }

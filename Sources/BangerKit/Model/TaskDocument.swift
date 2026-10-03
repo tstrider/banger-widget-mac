@@ -4,12 +4,18 @@
 //    "date": "2026-09-21",
 //    "tasks": [ ... ],
 //    "streakDays": 3,
-//    "lastClearedDate": "2026-09-20"
+//    "lastClearedDate": "2026-09-20",
+//    "freeMissDate": "2026-09-17"
 //  }
 //
-//  `streakDays` means "consecutive fully-cleared days BEFORE today", which is exactly
-//  what CelebrationConfig.streakDays wants. It only moves at a day rollover, never
-//  mid-day, so clearing today's list does not change it until tomorrow.
+//  `streakDays` means "fully-cleared days in the current run, BEFORE today", which is
+//  exactly what CelebrationConfig.streakDays wants. It only moves at a day rollover,
+//  never mid-day, so clearing today's list does not change it until tomorrow.
+//
+//  THE FREE MISS. A streak that dies on one unticked box punishes hardest on a good
+//  week, so one missed day in any seven is forgiven: the streak neither grows nor
+//  resets, and `freeMissDate` records the day that was let off. A second miss before
+//  seven days have passed resets the streak as usual. See `FreeMiss`.
 
 import Foundation
 
@@ -21,6 +27,9 @@ public struct TaskDocument: Sendable, Equatable {
     public var streakDays: Int
     /// The last day that ended fully cleared, "yyyy-MM-dd".
     public var lastClearedDate: String?
+    /// The last day that ended with tasks open and did NOT cost the streak,
+    /// "yyyy-MM-dd". Nil until the free miss has been used once.
+    public var freeMissDate: String?
     /// Unknown top-level JSON keys, preserved across a round trip.
     public var extra: [String: JSONValue]
 
@@ -28,12 +37,56 @@ public struct TaskDocument: Sendable, Equatable {
                 tasks: [BangerTask] = [],
                 streakDays: Int = 0,
                 lastClearedDate: String? = nil,
+                freeMissDate: String? = nil,
                 extra: [String: JSONValue] = [:]) {
         self.date = date
         self.tasks = tasks
         self.streakDays = streakDays
         self.lastClearedDate = lastClearedDate
+        self.freeMissDate = freeMissDate
         self.extra = extra
+    }
+}
+
+// MARK: - The free miss
+
+/// One missed day in any seven does not break the streak.
+public enum FreeMiss {
+
+    /// Days from one forgiven miss until the next can be forgiven.
+    public static let rechargeDays = 7
+
+    public enum State: Sendable, Equatable {
+        /// A miss today would be forgiven.
+        case ready
+        /// Spent. A miss today would reset the streak; it is back in `daysLeft` days.
+        /// `coveredYesterday` is true on the day straight after the forgiven one.
+        case spent(daysLeft: Int, coveredYesterday: Bool)
+
+        public var isReady: Bool { self == .ready }
+    }
+
+    /// The state on `day`, given the day the last free miss was spent on.
+    ///
+    /// A `usedOn` that is missing, unparseable or LATER than `day` counts as ready: a
+    /// miss that has not happened yet cannot have been spent, and the next forgiven
+    /// miss overwrites it.
+    public static func state(on day: String,
+                             usedOn: String?,
+                             calendar: Calendar = BangerDate.Rollover.calendar) -> State {
+        guard let usedOn,
+              let gap = BangerDate.dayGap(from: usedOn, to: day, calendar: calendar),
+              gap >= 0, gap < rechargeDays else { return .ready }
+        return .spent(daysLeft: rechargeDays - gap, coveredYesterday: gap == 1)
+    }
+
+    /// The first day a miss would be forgiven again, or nil when it already would be.
+    public static func readyDate(on day: String,
+                                 usedOn: String?,
+                                 calendar: Calendar = BangerDate.Rollover.calendar) -> String? {
+        guard case .spent(let daysLeft, _) = state(on: day, usedOn: usedOn, calendar: calendar)
+        else { return nil }
+        return BangerDate.dayString(byAdding: daysLeft, to: day, calendar: calendar)
     }
 }
 
@@ -56,9 +109,22 @@ public extension TaskDocument {
         tasks.first { $0.id == id }
     }
 
+    /// Whether a miss today would be forgiven, and if not, when one will be again.
+    var freeMiss: FreeMiss.State {
+        FreeMiss.state(on: date, usedOn: freeMissDate)
+    }
+
+    /// True when today, ending exactly as it stands, would be let off by the free miss:
+    /// there are open tasks, a streak to lose, and the miss is ready.
+    var wouldSpendFreeMiss: Bool {
+        !tasks.isEmpty && !isFullyCleared && streakDays > 0 && freeMiss.isReady
+    }
+
     /// The streak the user would be on if the day ended right now. Saturating, like the
     /// rollover itself: a hand-edited Int.max must not trap the CLI's `streak`.
     var projectedStreakDays: Int {
+        // A day with nothing on it is not a miss, and a forgiven miss keeps the number.
+        if tasks.isEmpty || wouldSpendFreeMiss { return streakDays }
         guard isFullyCleared else { return 0 }
         return streakDays < Int.max ? streakDays + 1 : Int.max
     }
@@ -139,6 +205,9 @@ public extension TaskDocument {
         if let lastClearedDate, !BangerDate.isValidDayString(lastClearedDate) {
             return "\"lastClearedDate\" is \"\(lastClearedDate)\", which is not a real yyyy-MM-dd day"
         }
+        if let freeMissDate, !BangerDate.isValidDayString(freeMissDate) {
+            return "\"freeMissDate\" is \"\(freeMissDate)\", which is not a real yyyy-MM-dd day"
+        }
         guard (0...TaskDocumentLimits.maxStreakDays).contains(streakDays) else {
             return "\"streakDays\" is \(streakDays); it must be 0...\(TaskDocumentLimits.maxStreakDays)"
         }
@@ -193,7 +262,8 @@ extension TaskDocument: Codable {
     private enum K {
         static let date = "date", tasks = "tasks"
         static let streakDays = "streakDays", lastClearedDate = "lastClearedDate"
-        static let known: Set<String> = [date, tasks, streakDays, lastClearedDate]
+        static let freeMissDate = "freeMissDate"
+        static let known: Set<String> = [date, tasks, streakDays, lastClearedDate, freeMissDate]
     }
 
     public init(from decoder: Decoder) throws {
@@ -202,6 +272,7 @@ extension TaskDocument: Codable {
         self.tasks = try container.decodeIfPresent([BangerTask].self, forKey: AnyKey(K.tasks)) ?? []
         self.streakDays = try container.decodeIfPresent(Int.self, forKey: AnyKey(K.streakDays)) ?? 0
         self.lastClearedDate = try container.decodeIfPresent(String.self, forKey: AnyKey(K.lastClearedDate))
+        self.freeMissDate = try container.decodeIfPresent(String.self, forKey: AnyKey(K.freeMissDate))
 
         var overflow: [String: JSONValue] = [:]
         for key in container.allKeys where !K.known.contains(key.stringValue) {
@@ -216,6 +287,7 @@ extension TaskDocument: Codable {
         try container.encode(tasks, forKey: AnyKey(K.tasks))
         try container.encode(streakDays, forKey: AnyKey(K.streakDays))
         try container.encodeIfPresent(lastClearedDate, forKey: AnyKey(K.lastClearedDate))
+        try container.encodeIfPresent(freeMissDate, forKey: AnyKey(K.freeMissDate))
         for (key, value) in extra where !K.known.contains(key) {
             try container.encode(value, forKey: AnyKey(key))
         }

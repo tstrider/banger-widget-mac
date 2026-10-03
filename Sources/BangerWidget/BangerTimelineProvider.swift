@@ -118,6 +118,7 @@ struct BangerTimelineProvider: TimelineProvider {
             WidgetTask(id: "s4", text: "Mix down the B-side", done: false, source: "me", completedAt: nil)
         ]
         return BangerEntry(date: Date(timeIntervalSince1970: 0),
-                           state: .list(WidgetDay(dayKey: "sample", tasks: tasks, streak: 4)))
+                           state: .list(WidgetDay(dayKey: "sample", tasks: tasks, streak: 4,
+                                                  freeMiss: .ready)))
     }()
 }

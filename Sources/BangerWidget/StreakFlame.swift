@@ -14,10 +14,21 @@
 //   - 9,999. The number is capped for display, grouped, and drawn in monospaced
 //     digits, so the pill's width only changes when the digit count does.
 //
+//  And one mark beside the number, for the free miss (one missed day in any seven
+//  does not break the streak — see FreeMiss in BangerKit):
+//
+//   - a small shield while the free miss is ready. It stays on the cold, at-risk
+//     pill too, which is how that pill says "today is covered if it comes to it";
+//   - a gold ticked shield, and the word SAVED where there is room, for the one day
+//     after a miss was forgiven: the streak is the same number it was, and this is why.
+//     It comes off when that day's pill goes cold, because by then the truth is the
+//     next line;
+//   - nothing while it is spent. No shield means the next miss costs the streak.
+//
 //  THE STREAK ITSELF IS NOT COUNTED HERE. `streak` is TaskDocument.streakDays:
-//  consecutive fully-cleared days BEFORE today. It only moves at the day rollover,
-//  on purpose, so tasks added late in the evening cannot take back a number that
-//  already went up. Clearing today makes the flame hot again; the digit moves at 2am.
+//  fully-cleared days in the current run, BEFORE today. It only moves at the day
+//  rollover, on purpose, so tasks added late in the evening cannot take back a number
+//  that already went up. Clearing today makes the flame hot again; the digit moves at 2am.
 //
 //  Everything that decides anything is a pure function on `StreakFlame`, so it can be
 //  checked without a widget host.
@@ -26,6 +37,16 @@ import SwiftUI
 import BangerKit
 
 // MARK: - The rules
+
+/// What the pill shows about the free miss.
+enum FreeMissMark: Sendable, Equatable {
+    /// Spent and not yet back, or nothing known.
+    case none
+    /// A miss today would be forgiven.
+    case ready
+    /// Yesterday was missed and forgiven.
+    case saved
+}
 
 enum StreakFlame {
 
@@ -56,6 +77,24 @@ enum StreakFlame {
                          nextBoundary: Date) -> Bool {
         guard streak > 0, taskCount > 0, !cleared else { return false }
         return now >= nudgeStart(endingAt: nextBoundary)
+    }
+
+    /// What VoiceOver reads for the pill.
+    static func accessibilityLabel(streak: Int, atRisk: Bool, freeMiss: FreeMissMark) -> String {
+        var text = "\(streak) day streak"
+        switch (atRisk, freeMiss) {
+        case (true, .ready):
+            text += ", list not cleared — your free miss covers today if it stays that way"
+        case (true, _):
+            text += ", at risk — clear today's list to keep it"
+        case (false, .ready):
+            text += ", free miss ready"
+        case (false, .saved):
+            text += ", saved by your free miss yesterday"
+        case (false, .none):
+            break
+        }
+        return text
     }
 
     /// "7", "1,234", "9,999", "9,999+". Grouped the way the user's locale groups.
@@ -100,6 +139,7 @@ struct StreakPill: View {
 
     var streak: Int
     var atRisk: Bool
+    var freeMiss: FreeMissMark = .none
     var ink: WidgetInk
     /// The small family has 146 points of header for everything; the pill gives up a
     /// little size there. From 1,000 days on, "of N" gives way to it (see headline).
@@ -116,6 +156,7 @@ struct StreakPill: View {
                 .foregroundStyle(numberStyle)
                 .contentTransition(.numericText(value: Double(min(streak, StreakFlame.displayCap))))
                 .lineLimit(1)
+            freeMissMark
         }
         .padding(.leading, compact ? 4 : 5.5)
         .padding(.trailing, compact ? 4 : 6.5)
@@ -126,9 +167,54 @@ struct StreakPill: View {
         .shadow(color: atRisk ? ink.cold.opacity(0.45) : glow.opacity(glowOpacity),
                 radius: atRisk ? 3 : glowRadius)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(atRisk
-            ? "\(streak) day streak, at risk — clear today's list to keep it"
-            : "\(streak) day streak"))
+        .accessibilityLabel(Text(StreakFlame.accessibilityLabel(
+            streak: streak, atRisk: atRisk, freeMiss: freeMiss)))
+    }
+
+    // MARK: Free miss
+
+    @ViewBuilder private var freeMissMark: some View {
+        switch freeMiss {
+        case .none:
+            EmptyView()
+        case .ready:
+            // The number's own colour, a step quieter: it is a fact about the streak,
+            // not a second thing to look at.
+            Image(systemName: "shield.fill")
+                .font(.system(size: compact ? 6.5 : 7.5, weight: .bold))
+                .foregroundStyle(numberStyle)
+                .opacity(atRisk ? 0.95 : 0.72)
+                .padding(.leading, compact ? 1 : 1.5)
+        case .saved:
+            // Gold, the celebration's colour: the save is good news. It comes off
+            // once the pill goes cold. By then the save is spent and tonight's miss
+            // would cost the streak, so SAVED on an at-risk pill would say the opposite
+            // of the truth.
+            if !atRisk {
+                HStack(spacing: 2) {
+                    Image(systemName: "checkmark.shield.fill")
+                        .font(.system(size: compact ? 7.5 : 8.5, weight: .bold))
+                    if !compact {
+                        Text("SAVED")
+                            .font(.system(size: 7.5, weight: .heavy, design: .rounded))
+                            .tracking(0.6)
+                            .lineLimit(1)
+                    }
+                }
+                .foregroundStyle(savedInk)
+                .padding(.leading, compact ? 1 : 2.5)
+            }
+        }
+    }
+
+    /// Gold, where gold reads. The two filled capsules are too bright for it: pink
+    /// takes white, and the year-long bar of fire takes the number's own dark ink.
+    private var savedInk: Color {
+        switch tier {
+        case .spark, .ember, .blaze, .inferno: return ink.spark
+        case .supernova: return ink.white(1.0)
+        case .legend: return ink.onFire
+        }
     }
 
     // MARK: Flame

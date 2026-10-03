@@ -262,6 +262,16 @@ public enum BangerDate {
         return calendar.dateComponents([.day], from: a, to: b).day
     }
 
+    /// The "yyyy-MM-dd" day `days` after `string` (before it, when negative). Nil when
+    /// `string` is not a real day. Stepped from noon, for the same reason as `dayGap`.
+    public static func dayString(byAdding days: Int, to string: String,
+                                 calendar: Calendar = Rollover.calendar) -> String? {
+        guard let anchor = noon(ofDayString: string, calendar: calendar),
+              let moved = calendar.date(byAdding: .day, value: days, to: anchor) else { return nil }
+        let parts = calendar.dateComponents([.year, .month, .day], from: moved)
+        return format(year: parts.year, month: parts.month, day: parts.day)
+    }
+
     private static func noon(ofDayString string: String, calendar: Calendar) -> Date? {
         guard let parts = components(ofDayString: string) else { return nil }
         var components = DateComponents()

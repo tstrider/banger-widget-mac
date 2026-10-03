@@ -554,9 +554,12 @@ public final class TaskStore: @unchecked Sendable {
     /// forward. Returns whether it rolled; the caller still holds the old day and
     /// decides whether it is worth archiving (a day with nothing on it is not).
     ///
-    /// A day that had tasks and ended with all of them done extends the streak; a day
-    /// that had tasks and did not ends it. A day with no tasks on it at all is not a
-    /// failure to clear, so it leaves the streak alone.
+    /// A day that had tasks and ended with all of them done extends the streak. A day
+    /// that had tasks and did not is a miss: the first miss in any seven days is
+    /// forgiven, leaving the streak where it was and recording the day in
+    /// `freeMissDate`; any other miss ends the streak. A miss with no streak to lose
+    /// spends nothing. A day with no tasks on it at all is not a failure to clear, so
+    /// it leaves everything alone.
     private func rollOverIfNeeded(_ document: inout TaskDocument) -> Bool {
         let today = BangerDate.today(calendar: calendar)
         guard document.date != today else { return false }
@@ -566,6 +569,7 @@ public final class TaskStore: @unchecked Sendable {
                                  tasks: [],
                                  streakDays: previous.streakDays,
                                  lastClearedDate: previous.lastClearedDate,
+                                 freeMissDate: previous.freeMissDate,
                                  extra: previous.extra)
 
         if !previous.tasks.isEmpty {
@@ -575,6 +579,10 @@ public final class TaskStore: @unchecked Sendable {
                 // the app, the widget and the CLI at once, every time the file opened.
                 fresh.streakDays = previous.streakDays < Int.max ? previous.streakDays + 1 : Int.max
                 fresh.lastClearedDate = previous.date
+            } else if previous.streakDays > 0,
+                      FreeMiss.state(on: previous.date, usedOn: previous.freeMissDate,
+                                     calendar: calendar).isReady {
+                fresh.freeMissDate = previous.date
             } else {
                 fresh.streakDays = 0
             }

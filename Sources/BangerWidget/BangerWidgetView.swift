@@ -387,6 +387,7 @@ struct BangerWidgetView: View {
                                cleared: cleared,
                                now: entry.date,
                                nextBoundary: BangerDate.Rollover.nextBoundary(after: entry.date)),
+                           freeMiss: day.freeMiss,
                            ink: ink,
                            compact: isSmall)
                     .hidden(!countsAreLive)

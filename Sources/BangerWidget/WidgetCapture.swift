@@ -142,7 +142,8 @@ struct WidgetCaptureFrame: View {
 
 /// One resting widget, no transition: a list of `taskCount` tasks with `doneCount`
 /// ticked, a given streak, drawn as of a given instant. Shows the streak pill
-/// across its tiers and its at-risk state, which depends on the entry's date.
+/// across its tiers, its free-miss mark, and its at-risk state, which depends on the
+/// entry's date.
 struct WidgetStillScenario {
 
     var taskCount: Int
@@ -150,6 +151,7 @@ struct WidgetStillScenario {
     var streak: Int
     var family: WidgetFamily
     var now: Date
+    var freeMiss: FreeMissMark = .none
     /// The first row in view, for a list long enough to scroll. Nil is its resting place.
     var scrollOffset: Int? = nil
     /// A frame part of the way through a scroll that started with the window here.
@@ -170,7 +172,7 @@ struct WidgetStillScenario {
                        done: index < doneCount, source: index % 3 == 1 ? "iris" : "me",
                        completedAt: index < doneCount ? Date(timeIntervalSince1970: Double(1_000 + index)) : nil)
         }
-        return WidgetDay(dayKey: "still", tasks: tasks, streak: streak)
+        return WidgetDay(dayKey: "still", tasks: tasks, streak: streak, freeMiss: freeMiss)
     }
 }
 

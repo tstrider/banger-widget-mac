@@ -154,6 +154,10 @@ struct ListOutput: Encodable {
     var date: String
     var streakDays: Int
     var lastClearedDate: String?
+    /// The day the free miss was last spent on. Absent until it has been used.
+    var freeMissDate: String?
+    /// Whether a missed day today would be forgiven.
+    var freeMissReady: Bool
     var open: Int
     var done: Int
     var fullyCleared: Bool
@@ -163,6 +167,8 @@ struct ListOutput: Encodable {
         date = document.date
         streakDays = document.streakDays
         lastClearedDate = document.lastClearedDate
+        freeMissDate = document.freeMissDate
+        freeMissReady = document.freeMiss.isReady
         open = document.openCount
         done = document.doneCount
         fullyCleared = document.isFullyCleared
@@ -203,6 +209,12 @@ struct StreakOutput: Encodable {
     var streakDays: Int
     var projectedStreakDays: Int
     var lastClearedDate: String?
+    /// Whether a missed day today would be forgiven.
+    var freeMissReady: Bool
+    /// The day the free miss was last spent on. Absent until it has been used.
+    var freeMissDate: String?
+    /// The first day a miss will be forgiven again. Absent while it is ready.
+    var freeMissReadyDate: String?
     var open: Int
     var done: Int
     var fullyCleared: Bool
@@ -250,7 +262,7 @@ enum BangerCTL {
       bangerctl undone <id|index>                uncheck it
       bangerctl rm <id|index>                    delete it
       bangerctl clear                            empty today's list (streak untouched)
-      bangerctl streak [--json]                  streak and today's progress
+      bangerctl streak [--json]                  streak, free miss and today's progress
       bangerctl set-json < file.json             replace the whole list, safely (validated:
                                                  unique non-blank ids, a real date no later
                                                  than today, sane streak; refused input
@@ -499,6 +511,10 @@ enum BangerCTL {
                                          streakDays: document.streakDays,
                                          projectedStreakDays: document.projectedStreakDays,
                                          lastClearedDate: document.lastClearedDate,
+                                         freeMissReady: document.freeMiss.isReady,
+                                         freeMissDate: document.freeMissDate,
+                                         freeMissReadyDate: FreeMiss.readyDate(
+                                             on: document.date, usedOn: document.freeMissDate),
                                          open: document.openCount,
                                          done: document.doneCount,
                                          fullyCleared: document.isFullyCleared))
@@ -506,12 +522,21 @@ enum BangerCTL {
         }
         Output.line("Streak: \(document.streakDays) day\(document.streakDays == 1 ? "" : "s").")
         Output.line("Last full clear: \(document.lastClearedDate ?? "never").")
+        if let back = FreeMiss.readyDate(on: document.date, usedOn: document.freeMissDate) {
+            Output.line("Free miss: used on \(document.freeMissDate ?? "?"). Back on \(back).")
+        } else {
+            Output.line("Free miss: ready. One missed day will not break the streak.")
+        }
         if document.tasks.isEmpty {
             Output.line("Today: nothing on the list.")
         } else {
             Output.line("Today: \(document.doneCount) of \(document.tasks.count) done.")
             if document.isFullyCleared {
                 Output.line("Ends today cleared — that makes it \(document.projectedStreakDays) tomorrow.")
+            } else if document.wouldSpendFreeMiss {
+                Output.line("If today ends unfinished, the free miss covers it and the streak stays at \(document.streakDays).")
+            } else if document.streakDays > 0 {
+                Output.line("If today ends unfinished, the streak resets to 0.")
             }
         }
         return ExitCode.ok.rawValue

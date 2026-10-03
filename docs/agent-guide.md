@@ -209,6 +209,7 @@ bangerctl list --json
   "fullyCleared" : false,
   "streakDays" : 4,
   "lastClearedDate" : "2026-09-20",
+  "freeMissReady" : true,
   "tasks" : [
     { "index" : 1, "id" : "a4nz9p", "text" : "Call the realtor", "done" : true,
       "source" : "me", "completedAt" : "2026-09-21T14:22:10Z" },
@@ -223,8 +224,10 @@ bangerctl list --json
 | `date` | the Banger day this list belongs to, `yyyy-MM-dd`. See §7 — it is **not** simply today's calendar date between midnight and 2am. |
 | `done` / `open` | counts |
 | `fullyCleared` | the list had tasks and every one is done |
-| `streakDays` | consecutive days **before today** that ended fully cleared |
+| `streakDays` | fully cleared days in the current run, **before today**. One missed day a week does not end the run — see "The free miss" in §7. |
 | `lastClearedDate` | the last day that ended with everything done; absent if never |
+| `freeMissReady` | `true` when a missed day today would be forgiven and the streak kept |
+| `freeMissDate` | the day the free miss was last spent on; absent until it has been used |
 | `tasks[].index` | 1-based position, as a human would say it. Not stable across edits. |
 | `tasks[].id` | stable within the day. **Use this, never the index, in scripts.** |
 | `tasks[].completedAt` | ISO 8601 UTC, present only when `done` is true |
@@ -237,10 +240,16 @@ bangerctl streak --json
 
 ```json
 { "date": "2026-09-21", "done": 0, "open": 2, "fullyCleared": false,
-  "streakDays": 0, "projectedStreakDays": 0 }
+  "streakDays": 4, "projectedStreakDays": 0,
+  "freeMissReady": false, "freeMissDate": "2026-09-18", "freeMissReadyDate": "2026-09-25" }
 ```
 
-`projectedStreakDays` is what the streak would be if the day ended right now.
+`projectedStreakDays` is what the streak would be if the day ended right now: one more
+than `streakDays` when the list is cleared, the same when the list is empty or the free miss
+would cover it, and 0 otherwise.
+
+`freeMissReadyDate` is the first day a miss will be forgiven again. It is absent while
+`freeMissReady` is `true`.
 
 `bangerctl list` is cheap but it takes the read side of a lock. **Do not
 poll it in a loop.** Once a second is the most you should ever need; once per user turn is
@@ -261,6 +270,7 @@ You should not write this file. You should be able to read it, so here it is.
   "date": "2026-09-21",
   "streakDays": 4,
   "lastClearedDate": "2026-09-20",
+  "freeMissDate": "2026-09-17",
   "tasks": [
     {
       "id": "a4nz9p",
@@ -327,9 +337,23 @@ What happens at the boundary, in order:
 2. `tasks` becomes empty.
 3. The streak moves: if yesterday had tasks and **every one** was done, `streakDays` goes up
    by one and `lastClearedDate` becomes yesterday. If yesterday had tasks and any were still
-   open, `streakDays` goes to **0**. A day with nothing on it at all is not a failure and
-   leaves the streak untouched.
+   open, that is a miss — see "The free miss" below. A day with nothing on it at all is not
+   a failure and leaves the streak untouched.
 4. `date` becomes the new day.
+
+**The free miss.** One missed day in any seven does not break the streak.
+
+- The first miss is forgiven. `streakDays` stays exactly where it was (it does not go up),
+  and `freeMissDate` becomes the day that was missed.
+- A second miss fewer than seven days after `freeMissDate` is not forgiven: `streakDays`
+  goes to **0**. `freeMissDate` does not change.
+- Seven days after `freeMissDate`, the free miss is ready again.
+- A miss when `streakDays` is already 0 spends nothing.
+
+You never set any of this. Read `freeMissReady` if the user asks whether their streak is
+safe tonight, and `freeMissReadyDate` if they ask when the free miss comes back. On the
+widget, a small shield beside the streak number means it is ready, and the word SAVED means
+it covered yesterday.
 
 Consequences for you:
 
@@ -337,7 +361,7 @@ Consequences for you:
   something needs to survive the night, add it again after the boundary.
 - **Do not add tomorrow's tasks tonight.** There is no future list. Anything you add at 23:00
   lands on the day that is ending and will be swept away at 02:00 with everything else
-  undone — which also breaks the streak. Wait until after 02:00 Central.
+  undone — which also counts as a missed day. Wait until after 02:00 Central.
 - If you are filling the list in the morning, any time after 02:00 Central is the new day, and
   you do not need to do anything special.
 - The boundary is handled for you. Do not try to trigger it, and never write `date` yourself.
@@ -427,7 +451,7 @@ PY
 
 Two warnings:
 
-- **`set-json` replaces everything** — `tasks`, `streakDays`, `lastClearedDate`, `date`, the
+- **`set-json` replaces everything** — `tasks`, `streakDays`, `lastClearedDate`, `freeMissDate`, `date`, the
   `escalation` bag, all of it. It does not merge. Start from the current file, not from
   scratch, or you will destroy the streak and the celebration bookkeeping.
 - **It is last-writer-wins.** If the user might be ticking boxes at the same moment, use `add`
@@ -502,7 +526,7 @@ export PATH="$HOME/.local/bin:$PATH"
 
 bangerctl path   --json                      # where the list actually lives
 bangerctl list   --json                      # today, the source of truth
-bangerctl streak --json                      # streak and progress
+bangerctl streak --json                      # streak, free miss and progress
 bangerctl add "text" --source iris --json    # add  — ALWAYS --source iris
 bangerctl done   <id> --json                 # check off — CELEBRATES
 bangerctl undone <id> --json                 # un-check

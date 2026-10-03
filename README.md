@@ -51,6 +51,11 @@ minutes after your last click, the list slides back to where it started on its o
 future days. At 2 a.m. the day rolls over, and tomorrow starts with a new list. If you cleared
 every task, your streak goes up by one.
 
+**One missed day a week is free.** If a day ends with something still on the list, your streak
+doesn't reset. It keeps its number, and the widget shows **SAVED** next to it the next day.
+Miss a second day within seven days and the streak goes back to zero. Seven days after a free
+miss, you get it back.
+
 **Your finished tasks move to the top.** When you check one off, it pops up to join the rest
 of your finished tasks, in the order you did them. What's left to do stays together below.
 
@@ -73,6 +78,8 @@ thump through the trackpad. It comes in levels:
 - **Finished tasks pop to the top.** The task fades from its old spot and bounces into its new
   one, while the tasks still to do slide down to make room.
 - **The last task gets a stamp** so you know it's the one that finishes the day.
+- **The shield** beside your streak number means your free miss is ready. No shield means
+  you've used it and the next miss costs the streak.
 - **The streak flame** grows the longer your streak runs, and turns urgent late in the day if
   you haven't cleared your list yet.
 
