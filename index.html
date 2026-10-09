@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Banger Widget for Mac. A to-do list that throws a party.</title>
+<meta name="description" content="A to-do list that lives on your Mac desktop and throws a party every time you finish something. Free and open source.">
+<meta name="theme-color" content="#07070a">
+<meta name="color-scheme" content="dark">
+<link rel="canonical" href="https://tstrider.github.io/banger-widget-mac/">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Banger Widget for Mac">
+<meta property="og:title" content="Banger Widget for Mac">
+<meta property="og:description" content="A to-do list that lives on your Mac desktop and throws a party every time you finish something. Free and open source.">
+<meta property="og:url" content="https://tstrider.github.io/banger-widget-mac/">
+<meta property="og:image" content="https://tstrider.github.io/banger-widget-mac/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Banger widget on a black desktop with confetti bursting from a checked task.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Banger Widget for Mac">
+<meta name="twitter:description" content="A to-do list that lives on your Mac desktop and throws a party every time you finish something.">
+<meta name="twitter:image" content="https://tstrider.github.io/banger-widget-mac/assets/og.png">
+
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Nunito:wght@500;600;700;800;900&family=Unbounded:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css?v=6">
+</head>
+<body>
+
+<canvas id="party" aria-hidden="true"></canvas>
+<div id="flash" aria-hidden="true"></div>
+
+<header class="nav" id="nav">
+  <div class="nav-in">
+    <a class="brand" href="#top">
+      <img src="assets/icon-128.png" alt="" width="30" height="30">
+      <span>Banger</span>
+    </a>
+    <a class="nav-ledger" id="nav-ledger" href="#top" aria-label="Back to the list">
+      <span class="nav-num"><b id="nav-count">1</b><span id="nav-of">of 5</span></span>
+      <span class="nav-ladder" id="nav-ladder"></span>
+    </a>
+    <div class="nav-right">
+      <button type="button" class="icon-btn" id="mute" aria-pressed="false" aria-label="Mute sound">
+        <svg class="snd-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.6L12 18.6V5.4L7.6 9.5H4z" fill="currentColor"/><path d="M15.4 8.6a4.8 4.8 0 0 1 0 6.8M18 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+        <svg class="snd-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.6L12 18.6V5.4L7.6 9.5H4z" fill="currentColor"/><path d="M15.8 9.4l5 5.2M20.8 9.4l-5 5.2" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>
+      </button>
+      <a class="gh" href="https://github.com/tstrider/banger-widget-mac" aria-label="Banger on GitHub">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>
+        <span>GitHub</span>
+      </a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+
+  <section class="hero">
+    <div class="scatter" aria-hidden="true"></div>
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <h1>Check it off.<br><span class="ramp">Set it off.</span></h1>
+        <p class="lede">Banger is a to-do widget for your Mac desktop. Every task you finish gets a party. This one is live, so check something off.</p>
+        <div class="cta">
+          <a class="btn" href="#install">Get Banger</a>
+          <span class="cta-note">Free and open source</span>
+        </div>
+      </div>
+      <div class="hero-stage">
+        <div id="hero-widget" class="bw bw--large"></div>
+        <div class="stage-ctl">
+          <button type="button" class="chip" id="hero-reset">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12a7 7 0 1 0 2.3-5.2M5 4.5v4h4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>Start over</span>
+          </button>
+          <button type="button" class="chip chip-fire" id="hero-streak" aria-pressed="false">
+            <i class="chip-flame" aria-hidden="true"></i>
+            <span id="hero-streak-label">Try it on a 12-day streak</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec compare">
+    <div class="wrap">
+      <h2 class="center">Finishing should feel like something.</h2>
+      <div class="duo">
+        <figure class="duo-col">
+          <figcaption>Most to-do apps</figcaption>
+          <label class="duo-card dull">
+            <input type="checkbox" id="dull-box">
+            <span class="dull-check" aria-hidden="true"><svg viewBox="0 0 18 18"><path d="M4.2 9.4l3.4 3.4 6.3-7.2" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="dull-text">Send the invoice</span>
+          </label>
+        </figure>
+        <figure class="duo-col">
+          <figcaption>Banger</figcaption>
+          <div class="duo-card bw bw--slice" id="duo-banger"></div>
+        </figure>
+      </div>
+      <p class="body center">Banger was built with ADHD in mind, where out of sight is out of mind and a reward only works if it is immediate. The list stays on your desktop. The reward lands the moment you click.</p>
+    </div>
+  </section>
+
+  <section class="sec levels">
+    <div class="wrap">
+      <h2 class="center">Three sizes of party.</h2>
+      <div class="lvls">
+        <div class="lv lv-1 bw" data-tier="standard" data-text="Any task"></div>
+        <div class="lv lv-2 bw" data-tier="final" data-text="The last task of the day"></div>
+        <div class="lv lv-3 bw" data-tier="streak" data-text="The last task, on a streak"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec streak">
+    <div class="wrap streak-in">
+      <h2 class="center">A streak you can see.</h2>
+      <p class="body center">Clear every task in a day and your streak goes up by one. The flame grows the longer it runs.</p>
+      <div class="pill-stage"><span class="pill" id="big-pill"></span></div>
+      <div class="dial">
+        <label class="dial-top" for="days"><span>Days in a row</span><output id="days-out" for="days">4</output></label>
+        <input type="range" id="days" min="0" max="1000" step="1" value="0">
+      </div>
+      <div class="ctl-row">
+        <button type="button" class="chip" id="miss">Miss a day</button>
+        <button type="button" class="chip" id="late" aria-pressed="false">Late in the day, list not cleared</button>
+      </div>
+      <p class="rule center">One missed day a week is free. The shield means it is ready.</p>
+      <p class="status center" id="streak-status" aria-live="polite"></p>
+    </div>
+  </section>
+
+  <section class="sec agent">
+    <div class="wrap">
+      <h2>Let your AI assistant fill the list.</h2>
+      <p class="body">Any assistant that can run a Terminal command can add your tasks each morning, or read them back to you. No account, no login, no setup.</p>
+      <div class="agent-grid">
+        <div class="term" id="term">
+          <div class="term-bar">
+            <span class="term-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            <button type="button" class="term-replay" id="term-replay">Replay</button>
+          </div>
+          <div class="term-body" id="term-body" aria-live="off"></div>
+        </div>
+        <div id="agent-widget" class="bw bw--medium"></div>
+      </div>
+      <div class="keys-line">
+        <span class="body">Or add one yourself, from any app.</span>
+        <button type="button" class="keys" id="keys" aria-label="Open quick add">
+          <kbd>&#8963;</kbd><kbd>&#8997;</kbd><kbd>&#8984;</kbd><kbd>N</kbd>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec install" id="install">
+    <div class="wrap install-grid">
+      <div class="install-copy">
+        <h2>Build it on your Mac.</h2>
+        <p class="body">There is no ready-made download. The project has no paid Apple developer account, so there is no signed app to double-click. One script builds it for you in a minute or two.</p>
+        <p class="needs">You need macOS 26 or later on an Apple silicon Mac, Xcode 26 or later, and <a href="https://github.com/yonaskolb/XcodeGen">XcodeGen</a>.</p>
+        <a class="btn" href="https://github.com/tstrider/banger-widget-mac">Open on GitHub</a>
+      </div>
+      <div class="bw todo" id="todo">
+        <div class="bw-clip"><i class="bw-bloom"></i></div><i class="bw-edge"></i><i class="bw-rim2"></i><i class="bw-sweep"></i>
+        <div class="todo-in">
+          <div class="bw-head">
+            <span class="bw-num"><b class="bw-count" id="todo-count">0</b><span class="bw-of">of 3</span></span>
+            <span class="bw-cleared">CLEARED</span>
+          </div>
+          <div class="bw-ladder bw-ladder--free" id="todo-ladder"></div>
+          <ol class="steps">
+            <li class="step">
+              <button type="button" class="step-box" role="checkbox" aria-checked="false" aria-label="Step 1 done"><span class="bw-box"></span><b aria-hidden="true">1</b></button>
+              <div class="step-b">
+                <div class="step-h"><h3>Run this in Terminal</h3><span class="bw-badge"><em>LAST ONE</em></span></div>
+                <div class="term code">
+                  <div class="term-bar">
+                    <span class="term-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                    <button type="button" class="term-replay" id="copy">Copy</button>
+                  </div>
+                  <pre><code id="install-code">git clone https://github.com/tstrider/banger-widget-mac.git
+cd banger-widget-mac
+./tools/install.sh</code></pre>
+                </div>
+              </div>
+            </li>
+            <li class="step">
+              <button type="button" class="step-box" role="checkbox" aria-checked="false" aria-label="Step 2 done"><span class="bw-box"></span><b aria-hidden="true">2</b></button>
+              <div class="step-b">
+                <div class="step-h"><h3>Put the widget on your desktop</h3><span class="bw-badge"><em>LAST ONE</em></span></div>
+                <p>Right-click an empty part of the desktop, choose Edit Widgets, find Banger, and drag the large size where you want it.</p>
+              </div>
+            </li>
+            <li class="step">
+              <button type="button" class="step-box" role="checkbox" aria-checked="false" aria-label="Step 3 done"><span class="bw-box"></span><b aria-hidden="true">3</b></button>
+              <div class="step-b">
+                <div class="step-h"><h3>Make it start when you log in</h3><span class="bw-badge"><em>LAST ONE</em></span></div>
+                <p>Open System Settings, then General, then Login Items. Click + and add /Applications/Banger.app.</p>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap foot-in">
+    <a class="brand" href="#top">
+      <img src="assets/icon-128.png" alt="" width="30" height="30">
+      <span>Banger</span>
+    </a>
+    <p>Free and open source under the MIT licence. The sounds and the confetti were made for this project.</p>
+    <nav aria-label="Project links">
+      <a href="https://github.com/tstrider/banger-widget-mac">GitHub</a>
+      <a href="https://github.com/tstrider/banger-widget-mac#readme">Read me</a>
+      <a href="https://github.com/tstrider/banger-widget-mac/blob/HEAD/docs/agent-guide.md">Guide for AI assistants</a>
+      <a href="https://github.com/tstrider/banger-widget-mac/blob/HEAD/LICENSE">Licence</a>
+    </nav>
+  </div>
+</footer>
+
+<div class="qa" id="qa" aria-hidden="true">
+  <form class="qa-panel" id="qa-form" autocomplete="off">
+    <span class="qa-plus" aria-hidden="true"><svg viewBox="0 0 18 18"><path d="M9 4.5v9M4.5 9h9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></span>
+    <input type="text" id="qa-input" maxlength="80" placeholder="New task" aria-label="New task" enterkeyhint="done">
+    <kbd>Return</kbd>
+  </form>
+</div>
+
+<script src="assets/banger.js?v=6" defer></script>
+</body>
+</html>
