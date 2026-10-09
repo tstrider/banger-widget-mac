@@ -2,6 +2,8 @@
 
 **A to-do list that lives on your desktop and throws a party every time you finish something.**
 
+**[Try it in your browser](https://tstrider.github.io/banger-widget-mac/)** before you install anything.
+
 Check off a task and your screen fills with confetti, a sound plays, and your trackpad gives a
 little thump. Finish the last task of the day and the party gets bigger. Clear your list
 several days in a row and it gets bigger again.
